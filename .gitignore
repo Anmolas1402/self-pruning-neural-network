@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env*
+
+# Dataset — downloaded automatically by the script
+data/
+
+# Node / React (unrelated to this project)
+node_modules/
+build/
+dist/
+coverage/
+
+# OS
+.DS_Store
+*.log
