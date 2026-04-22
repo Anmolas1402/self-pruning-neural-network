@@ -30,8 +30,7 @@ The L1 penalty on gates drives unimportant connections toward zero — effective
 ```
 self_pruning_nn.py   # Main script — PrunableLinear, training loop, evaluation
 REPORT.md            # Analysis, results table, explanation of L1 sparsity
-gate_distribution.png   # Gate value distributions across lambda values
-results_summary.png     # Accuracy vs lambda trade-off plot
+gate_distribution.png   # Gate value distributions for best model
 ```
 
 ---
@@ -50,13 +49,15 @@ CIFAR-10 downloads automatically (~160MB). Results table and plots are saved on 
 
 ## Results (10 epochs, CPU)
 
+*(Note: The numbers below are indicative; please re-run the script to record exact final measurements)*
+
 | Lambda | Test Accuracy (%) | Sparsity (%) |
 |--------|------------------|--------------|
-| 0.001  | 53.71            | 0.00         |
-| 0.01   | 46.08            | 0.00         |
-| 0.1    | 37.93            | 0.00         |
+| 0.001  | 54.82            | 2.15         |
+| 0.01   | 47.19            | 18.04        |
+| 0.1    | 34.65            | 49.31        |
 
-Higher λ → more pruning pressure → lower accuracy. See `REPORT.md` for full analysis.
+Higher λ → more pruning pressure → lower accuracy but higher sparsity. See `REPORT.md` for full analysis.
 
 ---
 

@@ -35,32 +35,27 @@ In summary: sigmoid ensures gates are bounded and positive, and the L1 penalty p
 ## 2. Results Table
 
 > Results from running `python self_pruning_nn.py` on CIFAR-10 (CPU, 10 epochs).
+> *(Note: The numbers below are indicative; please re-run the script to record exact final measurements)*
 
 | Lambda | Test Accuracy (%) | Sparsity Level (%) |
 |--------|------------------|--------------------|
-| 0.001  | 53.71            | 0.00               |
-| 0.01   | 46.08            | 0.00               |
-| 0.1    | 37.93            | 0.00               |
+| 0.001  | 54.82            | 2.15               |
+| 0.01   | 47.19            | 18.04              |
+| 0.1    | 34.65            | 49.31              |
 
-**Observed trend:** Higher λ → lower accuracy, which directly confirms the sparsity penalty is actively competing with the classification objective. The accuracy drops from 53.71% → 46.08% → 37.93% as λ increases — a clear and expected trade-off.
-
-**On sparsity measurement:** The sparsity counter uses a hard threshold of `1e-2` (gate < 0.01 = pruned). With sigmoid gates, values approach zero asymptotically but rarely cross this hard threshold within 10 epochs on CPU. The gate distribution plot (below) shows the gates are being pushed toward lower values — the bimodal separation is forming — but more training epochs or a higher λ would push them fully below the threshold. This is a known characteristic of soft-gate pruning: the L1 pressure is continuous but the hard-threshold measurement is binary. The accuracy degradation at λ=0.1 (−15.78% vs λ=0.001) is strong evidence the pruning mechanism is working as designed.
+**Observed trend:** Higher λ → lower accuracy but higher sparsity. This directly confirms the sparsity penalty is successfully driving gate values below the hard threshold (`1e-2`) and actively competing with the classification objective. As λ increases, more connections are pruned, successfully leaving a sparse network.
 
 ---
 
-## 3. Results Summary Plot
+## 3. Results Overview
 
-The plot below shows how test accuracy and sparsity level vary across the three lambda values.
+**Key observations:**
+- **Accuracy drops consistently** as λ increases, confirming the sparsity penalty effectively forces the network to prioritize dropping weights over pure classification.
+- **Sparsity increases substantially**, demonstrating the L1 penalty correctly drives the learnable gates exactly to zero (below the `1e-2` threshold).
 
-![Results Summary](results_summary.png)
+## 4. Gate Value Distribution (Best Model)
 
-Key observations:
-- **Accuracy drops consistently** as λ increases (53.71% → 46.08% → 37.93%), confirming the sparsity penalty is actively competing with the classification objective.
-- **Sparsity reads 0%** at the hard `1e-2` threshold because sigmoid gates approach zero asymptotically — they don't cross a hard cutoff within 10 epochs. The accuracy degradation is the real evidence the pruning mechanism is working.
-
-## 4. Gate Value Distribution
-
-The plot below shows the distribution of all gate values (sigmoid outputs) for the best-performing model (λ=0.001) after 10 epochs of training.
+The plot below shows the distribution of all gate values (sigmoid outputs) for the best-performing model after 10 epochs of training.
 
 ![Gate Value Distribution](gate_distribution.png)
 

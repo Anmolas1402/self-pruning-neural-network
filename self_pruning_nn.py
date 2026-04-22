@@ -87,10 +87,10 @@ class PrunableLinear(nn.Module):
             fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
             bound = 1 / np.sqrt(fan_in)
             nn.init.uniform_(self.bias, -bound, bound)
-        # Initialize gate scores to 2.0 → sigmoid(2.0) ≈ 0.88
-        # This means all connections start mostly open; the sparsity loss
-        # will drive them toward 0 during training.
-        nn.init.constant_(self.gate_scores, 2.0)
+        # Initialize gate scores to 0.5 → sigmoid(0.5) ≈ 0.62
+        # Starting them lower prevents dying gradients and allows 
+        # the sparsity penalty to actually drive values below 1e-2.
+        nn.init.constant_(self.gate_scores, 0.5)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         # Step 1: map gate_scores → [0, 1] via sigmoid
@@ -257,7 +257,12 @@ async def run_experiment(
     log(f"  Starting experiment  |  Lambda = {lambda_val}")
     log(f"{'='*55}")
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     log(f"  Device: {device}")
 
     # Data loading
@@ -270,14 +275,14 @@ async def run_experiment(
         root='./data', train=True, download=True, transform=transform
     )
     trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=64, shuffle=True, num_workers=2
+        trainset, batch_size=64, shuffle=True, num_workers=0
     )
 
     testset = torchvision.datasets.CIFAR10(
         root='./data', train=False, download=True, transform=transform
     )
     testloader = torch.utils.data.DataLoader(
-        testset, batch_size=64, shuffle=False, num_workers=2
+        testset, batch_size=64, shuffle=False, num_workers=0
     )
 
     # Model, optimizer, loss
@@ -341,25 +346,20 @@ async def main():
     log("=" * 55)
 
     # -----------------------------------------------------------------------
-    # Gate value distribution plot — all three lambdas side by side
+    # Gate value distribution plot — ONLY for the best model
     # -----------------------------------------------------------------------
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    fig.suptitle(
-        "Gate Value Distributions Across Lambda Values\n"
-        "(Sigmoid outputs — spike near 0 = pruned weights)",
-        fontsize=13
+    best_result = max(results, key=lambda x: x.accuracy)
+    
+    plt.figure(figsize=(8, 5))
+    plt.hist(best_result.gate_values, bins=50, color='skyblue', edgecolor='black')
+    plt.title(
+        f"Gate Value Distribution for Best Model (λ = {best_result.lambda_val})\n"
+        f"Test Accuracy: {best_result.accuracy:.2f}%  |  Sparsity: {best_result.sparsity:.2f}%"
     )
-
-    for ax, r in zip(axes, results):
-        ax.hist(r.gate_values, bins=50, color='skyblue', edgecolor='black')
-        ax.set_title(
-            f"λ = {r.lambda_val}\n"
-            f"Acc: {r.accuracy:.2f}%  |  Sparsity: {r.sparsity:.2f}%"
-        )
-        ax.set_xlabel("Gate Value [0–1]")
-        ax.set_ylabel("Frequency")
-        ax.grid(axis='y', alpha=0.3)
-
+    plt.xlabel("Gate Value [0–1]")
+    plt.ylabel("Frequency")
+    plt.grid(axis='y', alpha=0.3)
+    
     plt.tight_layout()
 
     # Save plot — no plt.show() since we're running non-interactively
